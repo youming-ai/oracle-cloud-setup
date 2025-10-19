@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ====== 配置和常量 ======
+# ====== Configuration and Constants ======
 readonly SCRIPT_NAME="$(basename "$0")"
 readonly LOG_FILE="/var/log/vps-optimization.log"
 readonly CONFIG_FILE="/etc/vps-optimize.conf"
 readonly BACKUP_DIR="/etc/vps-optimize-backups"
 
-# 在线模式配置
+# Online mode configuration
 readonly REPO_URL="https://raw.githubusercontent.com/youming-ai/oracle-cloud-setup/main"
 readonly TEMP_SCRIPT="/tmp/oracle-cloud-setup-temp.sh"
 
-# 默认配置
+# Default configuration
 DEFAULT_SWAPINESS=10
 DEFAULT_ZRAM_PERCENT=75
 DEFAULT_BANTIME=3600
@@ -24,14 +24,14 @@ DEFAULT_ENABLE_FAIL2BAN=true
 DRY_RUN=false
 AUTO_CONFIRM=false
 
-# 颜色定义
+# Color definitions
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
 readonly NC='\033[0m' # No Color
 
-# ====== 基础函数 ======
+# ====== Basic Functions ======
 timestamp() { date +"%Y%m%d-%H%M%S"; }
 
 log() {
@@ -47,9 +47,9 @@ log() {
 dry_run_log() {
   local operation="$1"
   local details="$2"
-  echo -e "${YELLOW}[DRY-RUN] 预执行操作: $operation${NC}"
+  echo -e "${YELLOW}[DRY-RUN] Pre-execution operation: $operation${NC}"
   if [[ -n "$details" ]]; then
-    echo -e "${YELLOW}详细信息: $details${NC}"
+    echo -e "${YELLOW}Details: $details${NC}"
   fi
 }
 
@@ -62,7 +62,7 @@ print_banner() {
  ___) |  __/ |   \ V /  __/ |  \__ \ |  _| | | (_| | (_| | |
 |____/ \___|_|    \_/ \___|_|  |___/ |_|   |_|\__,_|\__,_|_|
 
-                CLOUD VPS 优化工具 v1.0
+                CLOUD VPS Optimization Tool v1.0
 EOF
     echo -e "${NC}"
 }
@@ -73,7 +73,7 @@ backup_file() {
     local backup_dir="${BACKUP_DIR}/$(dirname "$f")"
     mkdir -p "$backup_dir"
     cp -a "$f" "${backup_dir}/$(basename "$f").bak.$(timestamp)"
-    log "INFO" "已备份文件: $f"
+    log "INFO" "File backed up: $f"
   fi
 }
 
@@ -81,14 +81,14 @@ have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 require_root() {
   if [[ $EUID -ne 0 ]]; then
-    log "ERROR" "请以 root 身份运行：sudo $0"
+    log "ERROR" "Please run as root: sudo $0"
     exit 1
   fi
 }
 
-# ====== 在线模式函数 ======
+# ====== Online Mode Functions ======
 check_online_mode() {
-  # 检测是否为在线执行（通过URL执行）
+  # Detect if running online (via URL execution)
   if [[ "${SCRIPT_SOURCE:-}" == "curl" ]] || [[ "${BASH_SOURCE[0]}" == "/dev/stdin" ]]; then
     return 0
   fi
@@ -97,8 +97,8 @@ check_online_mode() {
 
 check_curl() {
   if ! command -v curl >/dev/null 2>&1; then
-    echo -e "${RED}错误: 需要安装 curl 才能使用在线模式${NC}"
-    echo -e "${YELLOW}请安装 curl:${NC}"
+    echo -e "${RED}Error: curl needs to be installed for online mode${NC}"
+    echo -e "${YELLOW}Please install curl:${NC}"
 
     if command -v apt >/dev/null 2>&1; then
       echo "  sudo apt update && sudo apt install -y curl"
@@ -107,7 +107,7 @@ check_curl() {
     elif command -v dnf >/dev/null 2>&1; then
       echo "  sudo dnf install -y curl"
     else
-      echo "  请手动安装 curl"
+      echo "  Please install curl manually"
     fi
     exit 1
   fi
@@ -116,36 +116,36 @@ check_curl() {
 download_and_execute() {
   local mode="${1:-interactive}"
 
-  echo -e "${BLUE}=== 在线安装模式 ===${NC}"
-  log "INFO" "检测到在线执行模式，正在下载最新版本..."
+  echo -e "${BLUE}=== Online Installation Mode ===${NC}"
+  log "INFO" "Detected online execution mode, downloading latest version..."
 
-  # 下载最新脚本
+  # Download latest script
   if ! curl -fsSL "$REPO_URL/setup.sh" -o "$TEMP_SCRIPT"; then
-    log "ERROR" "下载脚本失败，请检查网络连接"
+    log "ERROR" "Failed to download script, please check network connection"
     exit 1
   fi
 
-  # 设置执行权限
+  # Set execution permissions
   chmod +x "$TEMP_SCRIPT"
 
-  # 执行脚本
+  # Execute script
   if [[ "$mode" == "auto" ]]; then
-    log "INFO" "自动执行优化..."
+    log "INFO" "Auto-executing optimization..."
     bash "$TEMP_SCRIPT" all
   else
-    log "INFO" "交互式执行优化..."
+    log "INFO" "Interactive execution optimization..."
     bash "$TEMP_SCRIPT" all
   fi
 
-  # 清理临时文件
+  # Clean up temporary files
   rm -f "$TEMP_SCRIPT"
-  log "INFO" "临时文件已清理"
+  log "INFO" "Temporary files cleaned up"
 }
 
-# ====== 改进的包管理器支持 ======
+# ====== Improved Package Manager Support ======
 pkg_install() {
   if [[ "${DRY_RUN:-false}" == "true" ]]; then
-    dry_run_log "安装软件包" "$*"
+    dry_run_log "Install packages" "$*"
     return 0
   fi
 
@@ -154,7 +154,7 @@ pkg_install() {
     if apt-get update -y; then
       apt-get install -y "$@"
     else
-      log "ERROR" "APT 更新失败"
+      log "ERROR" "APT update failed"
       return 1
     fi
   elif have_cmd apt; then
@@ -162,25 +162,25 @@ pkg_install() {
     if apt update -y; then
       apt install -y "$@"
     else
-      log "ERROR" "APT 更新失败"
+      log "ERROR" "APT update failed"
       return 1
     fi
   elif have_cmd yum; then
     if yum install -y "$@"; then
-      log "INFO" "YUM 安装成功: $*"
+      log "INFO" "YUM installation successful: $*"
     else
-      log "ERROR" "YUM 安装失败: $*"
+      log "ERROR" "YUM installation failed: $*"
       return 1
     fi
   elif have_cmd dnf; then
     if dnf install -y "$@"; then
-      log "INFO" "DNF 安装成功: $*"
+      log "INFO" "DNF installation successful: $*"
     else
-      log "ERROR" "DNF 安装失败: $*"
+      log "ERROR" "DNF installation failed: $*"
       return 1
     fi
   else
-    log "ERROR" "未支持的包管理器，脚本主要面向 Debian/Ubuntu/RHEL/CentOS 系统"
+    log "ERROR" "Unsupported package manager, script mainly targets Debian/Ubuntu/RHEL/CentOS systems"
     return 1
   fi
 }
@@ -189,12 +189,12 @@ sysctl_set_kv() {
   local key="$1" val="$2" file="/etc/sysctl.d/99-tuning.conf" reload="${3:-false}"
 
   if [[ "${DRY_RUN:-false}" == "true" ]]; then
-    dry_run_log "设置内核参数" "${key}=${val} (文件: $file, 重载: $reload)"
+    dry_run_log "Set kernel parameters" "${key}=${val} (file: $file, reload: $reload)"
     return 0
   fi
 
-  # 验证关键操作
-  if ! confirm_operation "设置内核参数 ${key}=${val}" "${AUTO_CONFIRM:-false}"; then
+  # Validate critical operation
+  if ! confirm_operation "Set kernel parameter ${key}=${val}" "${AUTO_CONFIRM:-false}"; then
     return 1
   fi
 
@@ -203,13 +203,13 @@ sysctl_set_kv() {
   backup_file "$file"
   sed -i "s/^${key}.*/# removed by optimize_vps.sh/" "$file" || true
   echo "${key}=${val}" >> "$file"
-  log "INFO" "设置内核参数: ${key}=${val}"
+  log "INFO" "Set kernel parameter: ${key}=${val}"
 
   if [[ "$reload" == "true" ]]; then
     if sysctl --system >/dev/null 2>&1; then
-      log "INFO" "内核参数已重新加载"
+      log "INFO" "Kernel parameters reloaded"
     else
-      log "WARN" "内核参数重新加载失败"
+      log "WARN" "Kernel parameter reload failed"
     fi
   fi
 }
@@ -218,76 +218,76 @@ systemd_disable_if_exists() {
   local svc="$1"
   if systemctl list-unit-files | grep -q "^${svc}\.service"; then
     if systemctl disable --now "${svc}.service"; then
-      log "INFO" "已禁用服务: ${svc}"
+      log "INFO" "Service disabled: ${svc}"
     else
-      log "WARN" "禁用服务失败: ${svc}"
+      log "WARN" "Failed to disable service: ${svc}"
     fi
   fi
 }
 
-# ====== 环境验证 ======
+# ====== Environment Validation ======
 validate_environment() {
-  log "INFO" "开始环境验证..."
+  log "INFO" "Starting environment validation..."
 
-  # 检查最小内存要求
+  # Check minimum memory requirements
   local total_mem=$(free -m | awk 'NR==2{print $2}')
   if [[ $total_mem -lt 512 ]]; then
-    log "WARN" "系统内存少于512MB，某些优化可能不适用"
+    log "WARN" "System memory less than 512MB, some optimizations may not apply"
   fi
 
-  # 检查磁盘空间
+  # Check disk space
   local disk_usage=$(df / | awk 'NR==2{print $5}' | sed 's/%//')
   if [[ $disk_usage -gt 90 ]]; then
-    log "ERROR" "磁盘使用率过高(${disk_usage}%)，请先清理空间"
+    log "ERROR" "Disk usage too high (${disk_usage}%), please free up space first"
     exit 1
   fi
 
-  # 检查网络连接
+  # Check network connectivity
   if ! ping -c 1 8.8.8.8 >/dev/null 2>&1; then
-    log "WARN" "网络连接可能存在问题"
+    log "WARN" "Network connection may have issues"
   fi
 
-  log "INFO" "环境验证完成"
+  log "INFO" "Environment validation completed"
 }
 
-# ====== 关键操作验证 ======
+# ====== Critical Operation Validation ======
 validate_critical_operation() {
   local operation="$1"
   local config_file="$2"
 
   case "$operation" in
     "ssh_config")
-      # 验证 SSH 配置文件语法
+      # Validate SSH configuration file syntax
       if ! sshd -t "$config_file" 2>/dev/null; then
-        log "ERROR" "SSH 配置文件语法错误，跳过应用"
+        log "ERROR" "SSH configuration file syntax error, skipping application"
         return 1
       fi
-      log "INFO" "SSH 配置文件语法验证通过"
+      log "INFO" "SSH configuration file syntax validation passed"
       ;;
     "sysctl")
-      # 验证 sysctl 参数
+      # Validate sysctl parameters
       if ! sysctl --system --ignore 2>/dev/null; then
-        log "WARN" "部分内核参数可能无效，但会继续执行"
+        log "WARN" "Some kernel parameters may be invalid, but will continue execution"
       fi
       ;;
     "firewall")
-      # 验证防火墙规则不会中断当前连接
+      # Validate firewall rules won't interrupt current connection
       local ssh_port="${SSH_PORT:-22}"
       if ! ufw status verbose | grep -q "$ssh_port.*ALLOW IN"; then
-        log "WARN" "防火墙规则可能阻止 SSH 连接，请确保端口 $ssh_port 已开放"
+        log "WARN" "Firewall rules may block SSH connection, please ensure port $ssh_port is open"
       fi
       ;;
     "package_install")
-      # 验证包管理器可用性
+      # Validate package manager availability
       if ! pkg_install --dry-run "$config_file" >/dev/null 2>&1; then
-        log "WARN" "包管理器可能不可用，某些安装可能失败"
+        log "WARN" "Package manager may not be available, some installations may fail"
       fi
       ;;
   esac
   return 0
 }
 
-# ====== 确认函数 ======
+# ====== Confirmation Function ======
 confirm_operation() {
   local operation="$1"
   local auto_confirm="${2:-false}"
@@ -296,8 +296,8 @@ confirm_operation() {
     return 0
   fi
 
-  echo -e "${YELLOW}即将执行关键操作: $operation${NC}"
-  echo -e "${YELLOW}是否继续？(y/N)${NC}"
+  echo -e "${YELLOW}About to execute critical operation: $operation${NC}"
+  echo -e "${YELLOW}Continue? (y/N)${NC}"
   read -r response
 
   case "$response" in
@@ -305,18 +305,18 @@ confirm_operation() {
       return 0
       ;;
     *)
-      log "INFO" "用户取消操作: $operation"
+      log "INFO" "User cancelled operation: $operation"
       return 1
       ;;
   esac
 }
 
-# ====== 加载配置 ======
+# ====== Load Configuration ======
 load_config() {
-  # 创建默认配置文件（如果不存在）
+  # Create default configuration file (if it doesn't exist)
   if [[ ! -f "$CONFIG_FILE" ]]; then
     cat >"$CONFIG_FILE" <<EOF
-# VPS 优化配置文件
+# VPS Optimization Configuration File
 SWAPPINESS=$DEFAULT_SWAPINESS
 ZRAM_PERCENT=$DEFAULT_ZRAM_PERCENT
 BANTIME=$DEFAULT_BANTIME
@@ -329,60 +329,60 @@ DISABLE_PASSWORD_AUTH=$DEFAULT_DISABLE_PASSWORD_AUTH
 DISABLE_ROOT_LOGIN=$DEFAULT_DISABLE_ROOT_LOGIN
 ENABLE_FAIL2BAN=$DEFAULT_ENABLE_FAIL2BAN
 
-# SSH 安全选项说明:
-# SSH_PORT: SSH 端口号 (默认: 22)
-# DISABLE_PASSWORD_AUTH: 禁用密码认证，仅允许密钥登录 (默认: false)
-# DISABLE_ROOT_LOGIN: 禁用 root 登录 (默认: false，云服务器推荐)
-# 修改这些选项后需要重新生成配置文件或手动编辑
+# SSH Security Options Description:
+# SSH_PORT: SSH port number (default: 22)
+# DISABLE_PASSWORD_AUTH: Disable password authentication, only allow key login (default: false)
+# DISABLE_ROOT_LOGIN: Disable root login (default: false, recommended for cloud servers)
+# After modifying these options, you need to regenerate the configuration file or edit manually
 EOF
-    log "INFO" "已创建默认配置文件: $CONFIG_FILE"
+    log "INFO" "Created default configuration file: $CONFIG_FILE"
   fi
 
-  # 加载用户配置
+  # Load user configuration
   source "$CONFIG_FILE"
-  log "INFO" "已加载配置文件: $CONFIG_FILE"
+  log "INFO" "Loaded configuration file: $CONFIG_FILE"
 }
 
-# ====== 回滚功能 ======
+# ====== Rollback Function ======
 rollback_changes() {
-  log "INFO" "开始回滚更改..."
+  log "INFO" "Starting rollback of changes..."
 
   if [[ -d "$BACKUP_DIR" ]]; then
-    # 恢复备份文件
+    # Restore backup files
     find "$BACKUP_DIR" -name "*.bak.*" -type f | while read -r backup_file; do
       original_path="${backup_file#$BACKUP_DIR}"
       original_path="${original_path%.*.*}"
       if cp "$backup_file" "$original_path"; then
-        log "INFO" "已恢复: $original_path"
+        log "INFO" "Restored: $original_path"
       else
-        log "WARN" "恢复失败: $original_path"
+        log "WARN" "Restore failed: $original_path"
       fi
     done
   else
-    log "WARN" "未找到备份目录"
+    log "WARN" "Backup directory not found"
   fi
 
-  # 重启相关服务
+  # Restart related services
   systemctl restart zramswap.service 2>/dev/null || true
   systemctl restart fail2ban 2>/dev/null || true
 
-  log "INFO" "回滚完成，建议重启系统"
+  log "INFO" "Rollback completed, system restart recommended"
 }
 
-# ====== 模块化优化函数 ======
+# ====== Modular Optimization Functions ======
 
 optimize_memory() {
-  log "INFO" "开始内存优化..."
+  log "INFO" "Starting memory optimization..."
 
-  # 配置 vm.swappiness 和 vfs_cache_pressure
-  log "INFO" "配置 vm.swappiness=${SWAPPINESS:-$DEFAULT_SWAPINESS} 与 vfs_cache_pressure=50"
+  # Configure vm.swappiness and vfs_cache_pressure
+  log "INFO" "Configuring vm.swappiness=${SWAPPINESS:-$DEFAULT_SWAPINESS} and vfs_cache_pressure=50"
   sysctl_set_kv "vm.swappiness" "${SWAPPINESS:-$DEFAULT_SWAPINESS}" true
   sysctl_set_kv "vm.vfs_cache_pressure" "50" true
 
-  # 配置 zram
-  log "INFO" "安装并配置 zram（小内存推荐）"
+  # Configure zram
+  log "INFO" "Installing and configuring zram (recommended for low memory systems)"
   if pkg_install zram-tools; then
-    # zram-tools 默认配置文件
+    # zram-tools default configuration file
     if [[ -f /etc/default/zramswap ]]; then
       backup_file /etc/default/zramswap
       sed -i 's/^#\?ALGO=.*/ALGO=zstd/' /etc/default/zramswap || true
@@ -396,68 +396,68 @@ EOF
     fi
 
     if systemctl enable --now zramswap.service; then
-      log "INFO" "zram 服务已启用"
+      log "INFO" "zram service enabled"
     else
-      log "WARN" "zram 服务启用失败"
+      log "WARN" "zram service enable failed"
     fi
   else
-    log "WARN" "zram-tools 安装失败，跳过 zram 配置"
+    log "WARN" "zram-tools installation failed, skipping zram configuration"
   fi
 
-  log "INFO" "内存优化完成"
+  log "INFO" "Memory optimization completed"
 }
 
 optimize_storage() {
-  log "INFO" "开始存储优化..."
+  log "INFO" "Starting storage optimization..."
 
-  # 精简无用服务
-  log "INFO" "停用不必要的桌面/本地服务（如存在）"
+  # Remove unnecessary services
+  log "INFO" "Disabling unnecessary desktop/local services (if present)"
   for svc in cups bluetooth avahi-daemon ModemManager whoopsie apport; do
     systemd_disable_if_exists "$svc"
   done
 
-  # 启用 SSD 自动 TRIM
+  # Enable SSD automatic TRIM
   if systemctl list-unit-files | grep -q '^fstrim.timer'; then
-    log "INFO" "启用 fstrim.timer"
+    log "INFO" "Enabling fstrim.timer"
     if systemctl enable --now fstrim.timer; then
-      log "INFO" "fstrim.timer 已启用"
+      log "INFO" "fstrim.timer enabled"
     else
-      log "WARN" "fstrim.timer 启用失败"
+      log "WARN" "fstrim.timer enable failed"
     fi
   fi
 
-  # 配置 I/O 调度器
-  log "INFO" "设置 I/O 调度器为 mq-deadline（运行时 & 持久化）"
+  # Configure I/O scheduler
+  log "INFO" "Setting I/O scheduler to mq-deadline (runtime & persistent)"
   for dev in /sys/block/*; do
     sch_file="${dev}/queue/scheduler"
     [[ -f "$sch_file" ]] || continue
     if grep -q 'mq-deadline' "$sch_file"; then
-      echo mq-deadline > "$sch_file" || log "WARN" "设置 ${dev} 调度器失败"
+      echo mq-deadline > "$sch_file" || log "WARN" "Failed to set ${dev} scheduler"
     fi
   done
 
-  # 持久化：udev 规则
+  # Persistence: udev rules
   UDEV_RULE=/etc/udev/rules.d/60-io-scheduler.rules
   backup_file "$UDEV_RULE"
   cat >"$UDEV_RULE" <<'EOF'
 # Set mq-deadline for common block devices
 ACTION=="add|change", KERNEL=="sd[a-z]|vd[a-z]|xvd[a-z]|nvme[0-9]n[0-9]", ATTR{queue/scheduler}="mq-deadline"
 EOF
-  udevadm control --reload || log "WARN" "udev 规则重载失败"
+  udevadm control --reload || log "WARN" "udev rules reload failed"
 
-  log "INFO" "存储优化完成"
+  log "INFO" "Storage optimization completed"
 }
 
 secure_system() {
-  log "INFO" "开始系统安全配置..."
+  log "INFO" "Starting system security configuration..."
 
-  # 清理日志
-  log "INFO" "清理 systemd 日志到 7 天或 100M"
-  journalctl --vacuum-time=7d || log "WARN" "日志清理失败"
-  journalctl --vacuum-size=100M || log "WARN" "日志清理失败"
+  # Clean up logs
+  log "INFO" "Cleaning systemd logs to 7 days or 100M"
+  journalctl --vacuum-time=7d || log "WARN" "Log cleanup failed"
+  journalctl --vacuum-size=100M || log "WARN" "Log cleanup failed"
 
-  # UFW 防火墙配置
-  log "INFO" "配置 UFW 防火墙"
+  # UFW firewall configuration
+  log "INFO" "Configuring UFW firewall"
   if pkg_install ufw; then
     SSH_PORT="$(ss -tnlp 2>/dev/null | awk '/sshd/ && /LISTEN/ {sub(/.*:/,"",$4); print $4; exit}')"
     [[ -z "${SSH_PORT:-}" ]] && SSH_PORT=22
@@ -467,16 +467,16 @@ secure_system() {
        ufw default allow outgoing && \
        ufw allow "${SSH_PORT}/tcp" && \
        yes | ufw enable; then
-      log "INFO" "UFW 防火墙已配置完成，SSH端口: ${SSH_PORT}"
+      log "INFO" "UFW firewall configuration completed, SSH port: ${SSH_PORT}"
     else
-      log "WARN" "UFW 防火墙配置失败"
+      log "WARN" "UFW firewall configuration failed"
     fi
   else
-    log "WARN" "UFW 安装失败，跳过防火墙配置"
+    log "WARN" "UFW installation failed, skipping firewall configuration"
   fi
 
-  # Fail2ban 配置
-  log "INFO" "配置 Fail2ban"
+  # Fail2ban configuration
+  log "INFO" "Configuring Fail2ban"
   if pkg_install fail2ban; then
     mkdir -p /etc/fail2ban
     JAIL_LOCAL=/etc/fail2ban/jail.local
@@ -495,103 +495,103 @@ logpath = %(sshd_log)s
 EOF
 
     if systemctl enable --now fail2ban; then
-      log "INFO" "Fail2ban 已启用"
+      log "INFO" "Fail2ban enabled"
     else
-      log "WARN" "Fail2ban 启用失败"
+      log "WARN" "Fail2ban enable failed"
     fi
   else
-    log "WARN" "Fail2ban 安装失败"
+    log "WARN" "Fail2ban installation failed"
   fi
 
-  # SSH 安全加固（可选）
+  # SSH security hardening (optional)
   if [[ "${ENABLE_SSH_HARDENING:-true}" == "true" ]]; then
-    log "INFO" "SSH 安全加固"
+    log "INFO" "SSH security hardening"
 
-    if ! confirm_operation "SSH 安全加固" "${AUTO_CONFIRM:-false}"; then
-      log "INFO" "跳过 SSH 安全加固"
+    if ! confirm_operation "SSH security hardening" "${AUTO_CONFIRM:-false}"; then
+      log "INFO" "Skipping SSH security hardening"
     else
       local sshd_config="/etc/ssh/sshd_config"
       backup_file "$sshd_config"
 
-      # 基础安全配置
+      # Basic security configuration
       sed -i 's/^#\?PermitEmptyPasswords.*/PermitEmptyPasswords no/' "$sshd_config" || true
       sed -i 's/^#\?MaxAuthTries.*/MaxAuthTries 3/' "$sshd_config" || true
       sed -i 's/^#\?ClientAliveInterval.*/ClientAliveInterval 300/' "$sshd_config" || true
       sed -i 's/^#\?ClientAliveCountMax.*/ClientAliveCountMax 2/' "$sshd_config" || true
 
-      # 禁用密码认证（可选）
+      # Disable password authentication (optional)
       if [[ "${DISABLE_PASSWORD_AUTH:-false}" == "true" ]]; then
         sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' "$sshd_config" || true
-        log "INFO" "已禁用密码认证（仅允许密钥登录）"
+        log "INFO" "Password authentication disabled (only key login allowed)"
       else
-        log "INFO" "保留密码认证（建议配置强密码）"
+        log "INFO" "Password authentication retained (strong password recommended)"
       fi
 
-      # 禁用 root 登录（可选，谨慎使用）
+      # Disable root login (optional, use with caution)
       if [[ "${DISABLE_ROOT_LOGIN:-false}" == "true" ]]; then
         sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' "$sshd_config" || true
-        log "WARN" "已禁用 root 登录，请确保已创建其他用户"
+        log "WARN" "Root login disabled, please ensure other users have been created"
       else
-        log "INFO" "保留 root 登录（云服务器环境推荐）"
+        log "INFO" "Root login retained (recommended for cloud server environments)"
       fi
 
-      # 验证 SSH 配置
+      # Validate SSH configuration
       if validate_critical_operation "ssh_config" "$sshd_config"; then
-        log "INFO" "SSH 配置验证通过"
+        log "INFO" "SSH configuration validation passed"
       else
-        log "ERROR" "SSH 配置验证失败，正在恢复备份..."
+        log "ERROR" "SSH configuration validation failed, restoring backup..."
         if [[ -f "${BACKUP_DIR}/etc/ssh/sshd_config.bak."* ]]; then
           cp "${BACKUP_DIR}/etc/ssh/sshd_config.bak."* "$sshd_config"
         fi
         return 1
       fi
 
-      log "INFO" "SSH 安全配置完成"
+      log "INFO" "SSH security configuration completed"
     fi
   fi
 
-  log "INFO" "系统安全配置完成"
+  log "INFO" "System security configuration completed"
 }
 
 optimize_network() {
-  log "INFO" "开始网络优化..."
+  log "INFO" "Starting network optimization..."
 
-  # BBR 配置
-  log "INFO" "配置 BBR 与 FQ 队列"
+  # BBR configuration
+  log "INFO" "Configuring BBR and FQ queue"
   if modinfo tcp_bbr >/dev/null 2>&1; then
     sysctl_set_kv "net.core.default_qdisc" "fq" true
     sysctl_set_kv "net.ipv4.tcp_congestion_control" "bbr" true
 
-    # 验证配置生效
+    # Verify configuration takes effect
     if [[ "$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)" == "bbr" ]]; then
-      log "INFO" "BBR 配置成功"
+      log "INFO" "BBR configuration successful"
     else
-      log "WARN" "BBR 配置可能未生效"
+      log "WARN" "BBR configuration may not have taken effect"
     fi
   else
-    log "WARN" "内核不支持 BBR，跳过网络优化"
+    log "WARN" "Kernel does not support BBR, skipping network optimization"
   fi
 
-  log "INFO" "网络优化完成"
+  log "INFO" "Network optimization completed"
 }
 
 cleanup_system() {
-  log "INFO" "开始系统清理..."
+  log "INFO" "Starting system cleanup..."
 
-  # 清理包缓存
+  # Clean package cache
   if have_cmd apt-get || have_cmd apt; then
-    log "INFO" "清理 APT 缓存与孤儿包"
-    apt-get autoremove -y || log "WARN" "APT autoremove 失败"
-    apt-get clean || log "WARN" "APT clean 失败"
+    log "INFO" "Cleaning APT cache and orphan packages"
+    apt-get autoremove -y || log "WARN" "APT autoremove failed"
+    apt-get clean || log "WARN" "APT clean failed"
   elif have_cmd yum; then
-    log "INFO" "清理 YUM 缓存"
-    yum clean all || log "WARN" "YUM clean 失败"
+    log "INFO" "Cleaning YUM cache"
+    yum clean all || log "WARN" "YUM clean failed"
   elif have_cmd dnf; then
-    log "INFO" "清理 DNF 缓存"
-    dnf clean all || log "WARN" "DNF clean 失败"
+    log "INFO" "Cleaning DNF cache"
+    dnf clean all || log "WARN" "DNF clean failed"
   fi
 
-  log "INFO" "系统清理完成"
+  log "INFO" "System cleanup completed"
 }
 
 benchmark_performance() {
@@ -599,155 +599,155 @@ benchmark_performance() {
     return 0
   fi
 
-  log "INFO" "开始性能测试..."
+  log "INFO" "Starting performance testing..."
 
-  # 内存信息
-  log "INFO" "=== 内存信息 ==="
+  # Memory information
+  log "INFO" "=== Memory Information ==="
   free -h | tee -a "$LOG_FILE"
 
-  # 磁盘 I/O 测试
-  log "INFO" "=== 磁盘 I/O 测试 ==="
+  # Disk I/O test
+  log "INFO" "=== Disk I/O Test ==="
   if dd if=/dev/zero of=/tmp/test bs=1M count=100 oflag=direct 2>&1 | tail -1 | tee -a "$LOG_FILE"; then
     rm -f /tmp/test
   else
-    log "WARN" "磁盘 I/O 测试失败"
+    log "WARN" "Disk I/O test failed"
   fi
 
-  # 网络栈配置
-  log "INFO" "=== 网络栈配置 ==="
-  sysctl net.ipv4.tcp_congestion_control net.core.default_qdisc 2>/dev/null | tee -a "$LOG_FILE" || log "WARN" "无法获取网络配置"
+  # Network stack configuration
+  log "INFO" "=== Network Stack Configuration ==="
+  sysctl net.ipv4.tcp_congestion_control net.core.default_qdisc 2>/dev/null | tee -a "$LOG_FILE" || log "WARN" "Unable to get network configuration"
 
-  # 服务状态
-  log "INFO" "=== 关键服务状态 ==="
+  # Service status
+  log "INFO" "=== Key Service Status ==="
   for service in zramswap fail2ban ufw; do
     if systemctl is-active --quiet "$service" 2>/dev/null; then
-      log "INFO" "$service: 运行中"
+      log "INFO" "$service: Running"
     else
-      log "WARN" "$service: 未运行"
+      log "WARN" "$service: Not running"
     fi
   done
 
-  log "INFO" "性能测试完成"
+  log "INFO" "Performance testing completed"
 }
 
-# ====== 主函数 ======
+# ====== Main Function ======
 main() {
-  log "INFO" "=== 开始 VPS 优化 ==="
+  log "INFO" "=== Starting VPS Optimization ==="
 
-  # 环境检查
+  # Environment check
   require_root
   validate_environment
   load_config
 
-  # 显示基础信息
-  log "INFO" "=== 系统信息 ==="
+  # Display basic information
+  log "INFO" "=== System Information ==="
   uname -a | tee -a "$LOG_FILE" || true
   lsb_release -a 2>/dev/null | tee -a "$LOG_FILE" || cat /etc/os-release | tee -a "$LOG_FILE" || true
 
-  # 创建备份目录
+  # Create backup directory
   mkdir -p "$BACKUP_DIR"
 
-  # 执行优化模块
+  # Execute optimization modules
   optimize_memory
   optimize_storage
   secure_system
   optimize_network
   cleanup_system
 
-  # 性能测试
+  # Performance testing
   benchmark_performance
 
-  log "INFO" "=== 优化完成！==="
-  echo ">>> 优化概要："
+  log "INFO" "=== Optimization Completed! ==="
+  echo ">>> Optimization Summary:"
   echo " - swappiness=${SWAPPINESS:-$DEFAULT_SWAPINESS}, vfs_cache_pressure=50"
-  echo " - zram: zstd, ${ZRAM_PERCENT:-$DEFAULT_ZRAM_PERCENT}% 内存"
-  echo " - 精简桌面/本地服务（如存在）"
-  echo " - 日志清理至 7 天/100M；包缓存清理"
-  echo " - fstrim.timer 已启用（如系统支持）"
-  echo " - I/O 调度器 mq-deadline"
-  echo " - UFW 防火墙已启用"
-  echo " - Fail2ban 已启用（sshd 保护）"
-  echo " - BBR 已启用（如内核支持）"
+  echo " - zram: zstd, ${ZRAM_PERCENT:-$DEFAULT_ZRAM_PERCENT}% memory"
+  echo " - Removed desktop/local services (if present)"
+  echo " - Logs cleaned to 7 days/100M; package cache cleaned"
+  echo " - fstrim.timer enabled (if system supports)"
+  echo " - I/O scheduler mq-deadline"
+  echo " - UFW firewall enabled"
+  echo " - Fail2ban enabled (sshd protection)"
+  echo " - BBR enabled (if kernel supports)"
   echo
-  echo "配置文件: $CONFIG_FILE"
-  echo "日志文件: $LOG_FILE"
-  echo "备份目录: $BACKUP_DIR"
+  echo "Configuration file: $CONFIG_FILE"
+  echo "Log file: $LOG_FILE"
+  echo "Backup directory: $BACKUP_DIR"
   echo
-  echo "建议："
-  echo " - 重启系统以使所有更改生效"
-  echo " - 如需提供 Web 服务，记得放行端口：ufw allow 80/tcp && ufw allow 443/tcp"
-  echo " - 如需回滚更改，运行：$0 rollback"
+  echo "Recommendations:"
+  echo " - Restart system to apply all changes"
+  echo " - If providing web services, remember to open ports: ufw allow 80/tcp && ufw allow 443/tcp"
+  echo " - To rollback changes, run: $0 rollback"
 
-  # 重启确认（如果不是 dry-run 模式）
+  # Restart confirmation (if not dry-run mode)
   if [[ "${DRY_RUN:-false}" != "true" ]]; then
     echo
-    if confirm_operation "立即重启系统以应用所有更改" "${AUTO_CONFIRM:-false}"; then
-      log "INFO" "用户确认重启，系统将在10秒后重启..."
-      echo -e "${GREEN}系统将在10秒后重启，按 Ctrl+C 取消${NC}"
+    if confirm_operation "Restart system immediately to apply all changes" "${AUTO_CONFIRM:-false}"; then
+      log "INFO" "User confirmed restart, system will restart in 10 seconds..."
+      echo -e "${GREEN}System will restart in 10 seconds, press Ctrl+C to cancel${NC}"
       sleep 10
       reboot
     else
-      log "INFO" "用户选择稍后手动重启"
-      echo -e "${YELLOW}请记得稍后手动重启系统：sudo reboot${NC}"
+      log "INFO" "User chose to manually restart later"
+      echo -e "${YELLOW}Please remember to manually restart system later: sudo reboot${NC}"
     fi
   else
-    echo -e "${YELLOW}[DRY-RUN] 实际执行时将询问是否重启系统${NC}"
+    echo -e "${YELLOW}[DRY-RUN] Will ask about system restart during actual execution${NC}"
   fi
 }
 
 show_help() {
   cat << EOF
-Oracle Cloud VPS 优化工具 v1.0
+Oracle Cloud VPS Optimization Tool v1.0
 
-用法: $0 [选项] [模块]
+Usage: $0 [options] [module]
 
-选项:
-  --help, -h          显示此帮助信息
-  --dry-run           预览模式，仅显示将要执行的操作，不实际执行
-  --auto-confirm      自动确认所有操作，不询问用户
+Options:
+  --help, -h          Show this help information
+  --dry-run           Preview mode, only show operations to be executed without actually executing
+  --auto-confirm      Auto-confirm all operations without asking user
 
-模块:
-  memory              仅执行内存优化
-  storage             仅执行存储优化
-  security            仅执行安全配置
-  network             仅执行网络优化
-  benchmark           仅执行性能测试
-  rollback            回滚所有更改
-  all (默认)          执行完整优化
+Modules:
+  memory              Execute memory optimization only
+  storage             Execute storage optimization only
+  security            Execute security configuration only
+  network             Execute network optimization only
+  benchmark           Execute performance testing only
+  rollback            Rollback all changes
+  all (default)       Execute complete optimization
 
-示例:
-  # 一键安装和优化 (推荐)
+Examples:
+  # One-click install and optimize (recommended)
   sudo bash -c "\$(curl -fsSL https://raw.githubusercontent.com/youming-ai/oracle-cloud-setup/main/setup.sh)"
 
-  # 本地执行完整优化
+  # Local execution of complete optimization
   sudo $0
 
-  # 仅优化内存
+  # Optimize memory only
   sudo $0 memory
 
-  # 预览将要执行的操作
+  # Preview operations to be executed
   sudo $0 --dry-run all
 
-  # 自动确认所有操作
+  # Auto-confirm all operations
   sudo $0 --auto-confirm all
 
-  # 预览并自动确认内存优化
+  # Preview and auto-confirm memory optimization
   sudo $0 --dry-run --auto-confirm memory
 
-  # 回滚更改
+  # Rollback changes
   sudo $0 rollback
 
 EOF
 }
 
-# ====== 脚本入口 ======
+# ====== Script Entry Point ======
 
-# 检查在线模式
+# Check online mode
 if check_online_mode; then
-  # 在线模式：检查 curl，然后下载执行
+  # Online mode: check curl, then download and execute
   check_curl
 
-  # 解析命令行参数
+  # Parse command line arguments
   local mode="interactive"
   for arg in "$@"; do
     case "$arg" in
@@ -770,7 +770,7 @@ if check_online_mode; then
   print_banner
   download_and_execute "$mode"
 else
-  # 本地模式：解析命令行参数
+  # Local mode: parse command line arguments
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --dry-run)
@@ -791,7 +791,7 @@ else
     esac
   done
 
-  # 本地模式：直接执行优化
+  # Local mode: directly execute optimization
   case "${1:-all}" in
     memory)
       require_root
@@ -835,8 +835,8 @@ else
       show_help
       ;;
     *)
-      echo "用法: $0 [memory|storage|security|network|benchmark|rollback|all]"
-      echo "使用 --help 查看详细帮助"
+      echo "Usage: $0 [memory|storage|security|network|benchmark|rollback|all]"
+      echo "Use --help to view detailed help"
       exit 1
       ;;
   esac
