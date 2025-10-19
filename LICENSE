@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2024 Oracle Cloud VPS Optimization Script
+Copyright (c) 2024 youming-ai
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,27 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## Oracle Cloud VPS Optimization Script
+
+This software is designed to optimize Oracle Cloud VPS servers for better performance,
+security, and resource management.
+
+### Features Included:
+- Memory optimization with ZRAM compression
+- Storage optimization with I/O scheduler tuning
+- Network optimization with BBR congestion control
+- Security hardening with firewall and fail2ban
+- System cleanup and maintenance tasks
+- Performance benchmarking and monitoring
+
+### Supported Systems:
+- Debian 9+
+- Ubuntu 16.04+
+- RHEL/CentOS 7+
+- Oracle Linux 7+
+
+For more information, please visit:
+https://github.com/youming-ai/oracle-cloud-setup
